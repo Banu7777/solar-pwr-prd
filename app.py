@@ -276,3 +276,36 @@ with st.expander("ℹ️ Qısa izah (münsif üçün)"):
         "- Qrafik 1 və 2-də **son 72 saatın tarixi məlumatları** göstərilir və seçilən üfüqə görə (+2/+3 saat) proqnoz nöqtəsi əlavə olunur.\n"
         "- Qrafik 3-də isə **günəş enerjisinə xas gündəlik profil** (son 7 günün ortalaması) göstərilir; bu, layihəni külək proqnozu layihəsindən vizual olaraq fərqləndirir."
     )
+
+import os
+
+st.markdown("---")
+st.markdown("## Əlavə analiz qrafikləri")
+
+with st.expander("📌 Modelin dəqiqliyi və feature importance (əlavə)", expanded=False):
+    colA, colB = st.columns(2)
+
+    # 1) Accuracy plot (h2 vs h3)
+    acc_path = os.path.join("figures", "accuracy_h2_h3.png")
+    with colA:
+        if os.path.exists(acc_path):
+            st.image(acc_path, use_container_width=True)
+            st.caption(
+                "Bu qrafik +2 və +3 saat üfüqləri üçün MAE və RMSE xətalarını müqayisə edir. "
+                "Üfüq uzandıqca (3 saat) qeyri-müəyyənlik artdığı üçün xəta da adətən yüksəlir."
+            )
+        else:
+            st.warning(f"Qrafik tapılmadı: {acc_path}")
+
+    # 2) Feature importance plot (h3)
+    fi_path = os.path.join("figures", "feature_importance_h3.png")
+    with colB:
+        if os.path.exists(fi_path):
+            st.image(fi_path, use_container_width=True)
+            st.caption(
+                "Bu qrafik permutation importance əsasında model üçün ən təsirli top-15 feature-i göstərir. "
+                "Dəyərlər həmin feature qarışdırıldıqda MAE-nin nə qədər artdığını ifadə edir (artım böyükdürsə, feature daha vacibdir)."
+            )
+        else:
+            st.warning(f"Qrafik tapılmadı: {fi_path}")
+
