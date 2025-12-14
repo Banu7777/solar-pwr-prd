@@ -23,10 +23,11 @@ header {visibility: hidden;}
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 st.markdown(
-    "<h2 style='margin-bottom:0'>☀️ Real vaxt meteoroloji məlumatları ilə PV gücü (kW) proqnozu</h2>"
-    "<div style='color:gray'>Open‑Meteo + N‑HiTS (2–3 saat üfüq)</div>",
+    "<h2 style='margin-bottom:0'>☀️ Günəş enerjisi istehsalının qısamüddətli AI proqnozu (PV gücü, kW)</h2>"
+    "<div style='color:gray'>Real vaxt meteoroloji məlumatları + N-HiTS modeli | +2 / +3 saat</div>",
     unsafe_allow_html=True
 )
+
 
 # ==============================
 # CONSTANTS
@@ -57,6 +58,34 @@ AZ_CITIES = {
     "Şamaxı": (40.6314, 48.6414),
     "Xüsusi koordinat": None
 }
+
+with st.expander("📘 Layihə haqqında ümumi məlumat", expanded=True):
+    st.markdown(
+        """
+Bu veb-tətbiq günəş panellərinin **elektrik enerjisi istehsalını (PV gücü, kW)** 
+qısamüddətli perspektivdə proqnozlaşdırmaq üçün hazırlanmışdır. 
+Proqnozlar real vaxtda əldə olunan **meteoroloji məlumatlar** 
+(günəş radiasiyası, temperatur və buludluluq) əsasında hesablanır.
+
+Layihənin əsas məqsədi günəş enerjisi sistemlərində 
+**istehsalın əvvəlcədən qiymətləndirilməsi**, 
+enerji planlaşdırılması və şəbəkə balansının yaxşılaşdırılmasına töhfə verməkdir.
+Bu məqsədlə zaman sırası məlumatları üçün uyğun olan **N-HiTS dərin öyrənmə modeli** istifadə edilmişdir.
+
+Model son **7 günün saatlıq məlumatlarını** analiz edərək 
+günəş enerjisi istehsalını **+2 və ya +3 saat** sonrakı vaxt üçün proqnozlaşdırır.
+Alınan nəticələr fiziki məhdudiyyətlər nəzərə alınmaqla (gecə saatlarında istehsalın sıfır olması) təqdim olunur.
+        """
+    )
+
+    st.markdown(
+        "**İstifadə olunan əsas komponentlər:**\n"
+        "- Məlumat mənbəyi: Open-Meteo (real vaxt meteoroloji API)\n"
+        "- Giriş parametrləri: günəş radiasiyası, temperatur, buludluluq və zaman xüsusiyyətləri\n"
+        "- Model: N-HiTS (Neural Hierarchical Interpolation for Time Series)\n"
+        "- Çıxış: PV gücü proqnozu (kW)\n"
+    )
+
 
 # ==============================
 # SIDEBAR
