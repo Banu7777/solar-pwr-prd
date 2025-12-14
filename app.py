@@ -204,6 +204,10 @@ pred_kw = predict_pv_kw(model, device, df_scaled)
 # ==============================
 current_radiation = df_raw["shortwave_radiation"].iloc[-1]
 
+# test ucun sadece (debugging)
+
+current_radiation = max(current_radiation, 400)
+
 # If it is night or very low radiation, PV power must be zero
 if current_radiation < 5:   # W/m² threshold
     pred_kw = 0.0
