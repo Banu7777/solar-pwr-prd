@@ -225,7 +225,9 @@ future_time = now_time + timedelta(hours=int(horizon))
 st.caption(f"Məkan: {city}  •  Proqnoz üfüqü: +{horizon} saat  •  Yüklənən model: {MODEL_PATH}")
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("İndiki radiasiya", f"{df_raw['shortwave_radiation'].iloc[-1]:.0f} W/m²")
+# col1.metric("İndiki radiasiya", f"{df_raw['shortwave_radiation'].iloc[-1]:.0f} W/m²")
+
+col1.metric("İndiki radiasiya", f"{current_radiation:.0f} W/m²")
 col2.metric("İndiki temperatur", f"{df_raw['temperature'].iloc[-1]:.1f} °C")
 col3.metric("İndiki buludluluq", f"{df_raw['cloudcover'].iloc[-1]:.0f} %")
 col4.metric(f"PV gücü proqnozu (+{horizon}h)", f"{pred_kw:.2f} kW")
