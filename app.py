@@ -287,7 +287,6 @@ with st.expander("📌 Modelin dəqiqliyi və dəyişənlərin əhəmiyyətliliy
 
     # 1) Accuracy plot (h2 vs h3)
     with colA:
-        if os.path.exists(acc_path):
             st.image("accuracy_h2_h3.png", use_container_width=True)
             st.caption(
                 "Bu qrafik +2 və +3 saat üfüqləri üçün MAE və RMSE xətalarını müqayisə edir. "
@@ -297,7 +296,6 @@ with st.expander("📌 Modelin dəqiqliyi və dəyişənlərin əhəmiyyətliliy
 
     # 2) Feature importance plot (h3)
     with colB:
-        if os.path.exists(fi_path):
             st.image("feature_importance_h3.png", use_container_width=True)
             st.caption(
                 "Bu qrafik permutation importance əsasında model üçün ən təsirli top-15 feature-i göstərir. "
