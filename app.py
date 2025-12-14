@@ -271,7 +271,7 @@ ax3.set_ylabel("Orta PV gücü (kW)")
 ax3.grid(True, alpha=0.3)
 st.pyplot(fig3)
 
-with st.expander("ℹ️ Qısa izah (münsif üçün)"):
+with st.expander("ℹ️ Qrafiklər haqqında izahlar"):
     st.markdown(
         "- Qrafik 1 və 2-də **son 72 saatın tarixi məlumatları** göstərilir və seçilən üfüqə görə (+2/+3 saat) proqnoz nöqtəsi əlavə olunur.\n"
         "- Qrafik 3-də isə **günəş enerjisinə xas gündəlik profil** (son 7 günün ortalaması) göstərilir; bu, layihəni külək proqnozu layihəsindən vizual olaraq fərqləndirir."
@@ -286,7 +286,7 @@ with st.expander("📌 Modelin dəqiqliyi və feature importance (əlavə)", exp
     colA, colB = st.columns(2)
 
     # 1) Accuracy plot (h2 vs h3)
-    acc_path = os.path.join("figures", "accuracy_h2_h3.png")
+    acc_path = os.path("accuracy_h2_h3.png")
     with colA:
         if os.path.exists(acc_path):
             st.image(acc_path, use_container_width=True)
@@ -298,7 +298,7 @@ with st.expander("📌 Modelin dəqiqliyi və feature importance (əlavə)", exp
             st.warning(f"Qrafik tapılmadı: {acc_path}")
 
     # 2) Feature importance plot (h3)
-    fi_path = os.path.join("figures", "feature_importance_h3.png")
+    fi_path = os.path("feature_importance_h3.png")
     with colB:
         if os.path.exists(fi_path):
             st.image(fi_path, use_container_width=True)
