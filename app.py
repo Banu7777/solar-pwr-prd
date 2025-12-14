@@ -24,14 +24,14 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 st.markdown(
     "<h2 style='margin-bottom:0'>☀️ Real vaxt meteoroloji məlumatları ilə PV gücü (kW) proqnozu</h2>"
-    "<div style='color:gray'>Open‑Meteo (real‑time/forecast) + N‑HiTS</div>",
+    "<div style='color:gray'>Open‑Meteo + N‑HiTS (2–3 saat üfüq)</div>",
     unsafe_allow_html=True
 )
 
 # ==============================
 # CONSTANTS
 # ==============================
-SEQ_LEN = 168  # 7 days
+SEQ_LEN = 168  # 7 days (hourly)
 ETA_BASE = 0.85
 TEMP_COEFF = 0.004  # ~0.4% per +1°C above 25°C
 
@@ -45,21 +45,39 @@ FEATURES = [
     "pv_roll6_std", "pv_roll12_std", "pv_roll24_std",
 ]
 
+AZ_CITIES = {
+    "Bakı": (40.4093, 49.8671),
+    "Gəncə": (40.6828, 46.3606),
+    "Sumqayıt": (40.5897, 49.6686),
+    "Mingəçevir": (40.7703, 47.0496),
+    "Şəki": (41.1919, 47.1706),
+    "Lənkəran": (38.7543, 48.8511),
+    "Naxçıvan": (39.2089, 45.4122),
+    "Quba": (41.3611, 48.5139),
+    "Şamaxı": (40.6314, 48.6414),
+    "Xüsusi koordinat": None
+}
+
 # ==============================
 # SIDEBAR
 # ==============================
 st.sidebar.header("⚙️ Parametrlər")
 
+city = st.sidebar.selectbox("Şəhər seçin", list(AZ_CITIES.keys()), index=0)
+if city != "Xüsusi koordinat":
+    lat, lon = AZ_CITIES[city]
+    st.sidebar.caption(f"Seçilmiş şəhər: **{city}**  |  Koordinatlar: {lat:.4f}, {lon:.4f}")
+else:
+    lat = st.sidebar.number_input("Latitude", value=40.4093, format="%.4f")
+    lon = st.sidebar.number_input("Longitude", value=49.8671, format="%.4f")
+
 horizon = st.sidebar.selectbox("Proqnoz üfüqü (saat)", [2, 3], index=1)
 p_rated = st.sidebar.number_input("PV sistemin nominal gücü (kW)", min_value=1.0, max_value=50.0, value=5.0, step=1.0)
 
-LAT_DEFAULT = 40.4093
-LON_DEFAULT = 49.8671
-lat = st.sidebar.number_input("Latitude", value=float(LAT_DEFAULT), format="%.4f")
-lon = st.sidebar.number_input("Longitude", value=float(LON_DEFAULT), format="%.4f")
-
 st.sidebar.divider()
 st.sidebar.caption("Qeyd: PV gücü real stansiya ölçməsi deyil, radiasiya və temperaturdan hesablanan proxy dəyərdir.")
+
+run_btn = st.sidebar.button("🔮 Proqnozu hesabla", use_container_width=True)
 
 MODEL_PATH = f"n_hits_solar_pv_model_h{horizon}.pth"
 
@@ -75,7 +93,6 @@ def load_model_and_scaler(model_path: str):
     model = NHiTS(seq_len=SEQ_LEN, num_features=len(FEATURES), hidden_size=256, num_blocks=3).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-
     return model, device, mean, scale
 
 def std_scale(df: pd.DataFrame, mean: np.ndarray, scale: np.ndarray) -> pd.DataFrame:
@@ -120,7 +137,7 @@ def add_features(df: pd.DataFrame, p_rated_kw: float) -> pd.DataFrame:
     return df
 
 @st.cache_data(ttl=900, show_spinner=False)
-def fetch_recent_hours(lat: float, lon: float, hours: int = 300) -> pd.DataFrame:
+def fetch_recent_hours(lat: float, lon: float, hours: int = 320) -> pd.DataFrame:
     url = (
         "https://api.open-meteo.com/v1/forecast?"
         f"latitude={lat}&longitude={lon}"
@@ -130,7 +147,6 @@ def fetch_recent_hours(lat: float, lon: float, hours: int = 300) -> pd.DataFrame
     js = requests.get(url, timeout=30).json()
     if "hourly" not in js:
         raise RuntimeError("Open‑Meteo cavabında hourly hissəsi tapılmadı.")
-
     df = pd.DataFrame({
         "time": js["hourly"]["time"],
         "shortwave_radiation": js["hourly"]["shortwave_radiation"],
@@ -149,6 +165,15 @@ def predict_pv_kw(model, device, df_scaled: pd.DataFrame) -> float:
     with torch.no_grad():
         yhat = model(x).item()
     return float(yhat)
+
+# ==============================
+# UX: instructions until click
+# ==============================
+if not run_btn:
+    st.info(
+        "Soldakı paneldən şəhəri, proqnoz üfüqünü (2 və ya 3 saat) və PV gücünü seçin, sonra **‘Proqnozu hesabla’** düyməsinə basın."
+    )
+    st.stop()
 
 # ==============================
 # MAIN FLOW
@@ -172,7 +197,6 @@ except Exception as e:
 
 df_feat = add_features(df_raw, p_rated)
 df_scaled = std_scale(df_feat, mean, scale)
-
 pred_kw = predict_pv_kw(model, device, df_scaled)
 
 now_time = df_feat["time"].iloc[-1]
@@ -181,18 +205,20 @@ future_time = now_time + timedelta(hours=int(horizon))
 # ==============================
 # TOP METRICS
 # ==============================
+st.caption(f"Məkan: {city}  •  Proqnoz üfüqü: +{horizon} saat  •  Yüklənən model: {MODEL_PATH}")
+
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("İndiki radiasiya", f"{df_raw['shortwave_radiation'].iloc[-1]:.0f} W/m²")
 col2.metric("İndiki temperatur", f"{df_raw['temperature'].iloc[-1]:.1f} °C")
 col3.metric("İndiki buludluluq", f"{df_raw['cloudcover'].iloc[-1]:.0f} %")
 col4.metric(f"PV gücü proqnozu (+{horizon}h)", f"{pred_kw:.2f} kW")
 
-st.caption(f"Proqnoz vaxtı: {future_time.strftime('%Y-%m-%d %H:%M')} (local timezone) • Yüklənən model: {MODEL_PATH}")
+st.caption(f"Proqnoz vaxtı: {future_time.strftime('%Y-%m-%d %H:%M')} (local timezone)")
 
 # ==============================
-# VISUAL 1: Area history + forecast point
+# VISUAL 1
 # ==============================
-st.markdown("### 1) Son 72 saat üçün PV gücü (proxy) + gələcək proqnoz nöqtəsi")
+st.markdown(f"### 1) Son 72 saat (tarixi) PV gücü (proxy) + +{horizon} saat proqnoz nöqtəsi")
 last72 = df_feat.iloc[-72:].copy()
 
 fig1, ax1 = plt.subplots(figsize=(12, 3.6))
@@ -206,13 +232,8 @@ ax1.set_xlabel("Zaman")
 ax1.grid(True, alpha=0.3)
 st.pyplot(fig1)
 
-st.markdown(
-    "Bu qrafikdə PV gücü **radiasiya və temperatur əsasında hesablanmış təxmini (proxy) dəyərdir**. "
-    "Gələcəkdəki tək nöqtə isə N‑HiTS modelinin verdiyi **+2/+3 saatlıq proqnozu** göstərir."
-)
-
 # ==============================
-# VISUAL 2: Radiation vs PV scatter
+# VISUAL 2
 # ==============================
 st.markdown("### 2) Radiasiya–PV gücü əlaqəsi (son 72 saat)")
 fig2, ax2 = plt.subplots(figsize=(6.8, 4.2))
@@ -222,13 +243,8 @@ ax2.set_ylabel("PV gücü (kW)")
 ax2.grid(True, alpha=0.3)
 st.pyplot(fig2)
 
-st.markdown(
-    "Burada əsas məntiq vizual görünür: radiasiya artdıqca PV gücü artır; "
-    "buludluluq və temperatur isə bu əlaqəni dəyişə bilər."
-)
-
 # ==============================
-# VISUAL 3: Daily PV profile (solar signature)
+# VISUAL 3
 # ==============================
 st.markdown("### 3) Günlük PV profili (son 7 gün: saatlara görə orta PV gücü)")
 last7d = df_feat.iloc[-24*7:].copy()
@@ -242,14 +258,8 @@ ax3.set_ylabel("Orta PV gücü (kW)")
 ax3.grid(True, alpha=0.3)
 st.pyplot(fig3)
 
-st.markdown(
-    "Bu qrafik layihəni külək layihəsindən açıq şəkildə fərqləndirir: günəş enerjisində güc gün ərzində "
-    "sabah artır, günorta pikə çatır və axşam azalır."
-)
-
-with st.expander("ℹ️ Qeyd (elmi düzgünlük və məhdudiyyətlər)"):
+with st.expander("ℹ️ Qısa izah (münsif üçün)"):
     st.markdown(
-        "- PV gücü real stansiya ölçməsi deyil, **fiziki qaydaya əsaslanan proxy** kimi hesablanır.\n"
-        "- Məqsəd: real vaxt meteoroloji məlumatlar → AI proqnoz → enerji planlaması üçün istiqamət vermək.\n"
-        "- Daha dəqiq proqnoz üçün gələcəkdə real PV ölçmələri (inverter/SCADA) əlavə edilə bilər."
+        "- Qrafik 1 və 2-də **son 72 saatın tarixi məlumatları** göstərilir və seçilən üfüqə görə (+2/+3 saat) proqnoz nöqtəsi əlavə olunur.\n"
+        "- Qrafik 3-də isə **günəş enerjisinə xas gündəlik profil** (son 7 günün ortalaması) göstərilir; bu, layihəni külək proqnozu layihəsindən vizual olaraq fərqləndirir."
     )
