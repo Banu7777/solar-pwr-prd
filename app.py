@@ -199,6 +199,19 @@ df_feat = add_features(df_raw, p_rated)
 df_scaled = std_scale(df_feat, mean, scale)
 pred_kw = predict_pv_kw(model, device, df_scaled)
 
+# ==============================
+# PHYSICAL GATING (PV cannot be negative, night-time handling)
+# ==============================
+current_radiation = df_raw["shortwave_radiation"].iloc[-1]
+
+# If it is night or very low radiation, PV power must be zero
+if current_radiation < 5:   # W/m² threshold
+    pred_kw = 0.0
+else:
+    # Just in case model outputs a small negative value
+    pred_kw = max(0.0, pred_kw)
+
+
 now_time = df_feat["time"].iloc[-1]
 future_time = now_time + timedelta(hours=int(horizon))
 
