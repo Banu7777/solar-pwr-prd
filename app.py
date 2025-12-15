@@ -239,31 +239,6 @@ pred_kw = predict_pv_kw(model, device, df_feat)
 
 pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
-#------------------------------------------------------
-# ==============================
-# TIME + METRICS TIME FIX (NOW) + PHYSICAL GATING
-# ==============================
-
-# # 1) Pick "now_time" correctly (latest available hour <= current local clock time)
-# tz = df_raw["time"].dt.tz
-# now_clock = pd.Timestamp.now(tz=tz).floor("H") if tz is not None else pd.Timestamp.now().floor("H")
-# now_time = df_raw.loc[df_raw["time"] <= now_clock, "time"].iloc[-1]
-
-# # 2) Current (real) values at now_time (for metrics)
-# current_radiation = float(df_raw.loc[df_raw["time"] == now_time, "shortwave_radiation"].iloc[0])
-# current_temp = float(df_raw.loc[df_raw["time"] == now_time, "temperature"].iloc[0])
-# current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[0])
-
-# # 3) Future time for prediction display (+2/+3 hours from now_time)
-# future_time = now_time + timedelta(hours=int(horizon))
-
-# # 4) Physical gating should use radiation at FUTURE time (because you predict future PV)
-# future_rad = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
-# if len(future_rad) > 0 and float(future_rad.iloc[0]) < 5:
-#     pred_kw = 0.0
-# else:
-#     pred_kw = max(0.0, pred_kw)
-
 
 from zoneinfo import ZoneInfo
 
@@ -293,13 +268,10 @@ current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[
 
 # ---- DEBUG (very important now) ----
 with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
-    st.write("now_clock_baku:", now_clock_baku)
-    st.write("now_time picked:", now_time)
-    st.write("future_time:", future_time)
-    st.write("current_radiation:", current_radiation)
-    st.write("future_radiation:", future_radiation)
-    st.write("pred_kw BEFORE gating:", pred_kw)
-    st.write("len(mean):", len(mean), "len(scale):", len(scale), "num_features:", len(FEATURES))
+    st.write("last_pv:", df_feat["pv_power_kw"].iloc[-1])
+    st.write("delta:", delta)
+    st.write("final pred:", yhat)
+
 
 
 # Physical gating should use future radiation (since you predict +2/+3h)
