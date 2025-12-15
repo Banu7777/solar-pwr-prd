@@ -231,10 +231,7 @@ pred_kw = predict_pv_kw(model, device, df_scaled)
 # ==============================
 # PHYSICAL GATING (PV cannot be negative, night-time handling)
 # ==============================
-# now_time = df_feat["time"].iloc[-1]   
-# current_radiation = df_raw.loc[df_raw["time"] <= now_time, "shortwave_radiation"].iloc[-1]
-# now_time = df_raw["time"].max() - timedelta(hours=0)  # ən son saat
-# # və ya daha məntiqli:
+
 
 now_time = pd.Timestamp.now(tz=df_raw["time"].dt.tz).floor("H") if df_raw["time"].dt.tz is not None else pd.Timestamp.now().floor("H")
 now_time = df_raw.loc[df_raw["time"] <= now_time, "time"].iloc[-1]
@@ -248,7 +245,6 @@ else:
     pred_kw = max(0.0, pred_kw)
 
 
-now_time = df_feat["time"].iloc[-1]
 future_time = now_time + timedelta(hours=int(horizon))
 
 future_rad = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
