@@ -296,6 +296,8 @@ with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=Fals
     st.write("current_radiation:", current_radiation)
     st.write("future_radiation:", future_radiation)
     st.write("pred_kw BEFORE gating:", pred_kw)
+    st.write("len(mean):", len(mean), "len(scale):", len(scale), "num_features:", len(FEATURES))
+
 
 # Physical gating should use future radiation (since you predict +2/+3h)
 if future_radiation is not None and future_radiation < 5:
