@@ -232,50 +232,72 @@ pred_kw = predict_pv_kw(model, device, df_scaled)
 # PHYSICAL GATING (PV cannot be negative, night-time handling)
 # ==============================
 
-# now_time = pd.Timestamp.now(tz=df_raw["time"].dt.tz).floor("H") if df_raw["time"].dt.tz is not None else pd.Timestamp.now().floor("H")
-# now_time = df_raw.loc[df_raw["time"] <= now_time, "time"].iloc[-1]
-# current_radiation = df_raw.loc[df_raw["time"] == now_time, "shortwave_radiation"].iloc[0]
-
-# # If it is night or very low radiation, PV power must be zero
-# if current_radiation < 5:   # W/m² threshold
-#     pred_kw = 0.0
-# else:
-#     # Just in case model outputs a small negative value
-#     pred_kw = max(0.0, pred_kw)
-
-
-# future_time = now_time + timedelta(hours=int(horizon))
-
-# future_rad = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
-# if len(future_rad) > 0 and future_rad.iloc[0] < 5:
-#     pred_kw = 0.0
-# else:
-#     pred_kw = max(0.0, pred_kw)
 
 #------------------------------------------------------
 # ==============================
 # TIME + METRICS TIME FIX (NOW) + PHYSICAL GATING
 # ==============================
 
-# 1) Pick "now_time" correctly (latest available hour <= current local clock time)
-tz = df_raw["time"].dt.tz
-now_clock = pd.Timestamp.now(tz=tz).floor("H") if tz is not None else pd.Timestamp.now().floor("H")
-now_time = df_raw.loc[df_raw["time"] <= now_clock, "time"].iloc[-1]
+# # 1) Pick "now_time" correctly (latest available hour <= current local clock time)
+# tz = df_raw["time"].dt.tz
+# now_clock = pd.Timestamp.now(tz=tz).floor("H") if tz is not None else pd.Timestamp.now().floor("H")
+# now_time = df_raw.loc[df_raw["time"] <= now_clock, "time"].iloc[-1]
 
-# 2) Current (real) values at now_time (for metrics)
+# # 2) Current (real) values at now_time (for metrics)
+# current_radiation = float(df_raw.loc[df_raw["time"] == now_time, "shortwave_radiation"].iloc[0])
+# current_temp = float(df_raw.loc[df_raw["time"] == now_time, "temperature"].iloc[0])
+# current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[0])
+
+# # 3) Future time for prediction display (+2/+3 hours from now_time)
+# future_time = now_time + timedelta(hours=int(horizon))
+
+# # 4) Physical gating should use radiation at FUTURE time (because you predict future PV)
+# future_rad = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
+# if len(future_rad) > 0 and float(future_rad.iloc[0]) < 5:
+#     pred_kw = 0.0
+# else:
+#     pred_kw = max(0.0, pred_kw)
+
+
+from zoneinfo import ZoneInfo
+
+# ==============================
+# TIME (Baku) + DEBUG + PHYSICAL GATING (FIX)
+# ==============================
+
+# Make a Baku "clock" (even if df_raw time is naive)
+now_clock_baku = pd.Timestamp.now(tz=ZoneInfo("Asia/Baku")).tz_localize(None).floor("H")
+
+# Choose now_time as latest available hour <= Baku clock
+now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+
+# Future time
+future_time = now_time + timedelta(hours=int(horizon))
+
+# Radiation now / future
 current_radiation = float(df_raw.loc[df_raw["time"] == now_time, "shortwave_radiation"].iloc[0])
+
+future_rad_series = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
+future_radiation = float(future_rad_series.iloc[0]) if len(future_rad_series) > 0 else None
+
 current_temp = float(df_raw.loc[df_raw["time"] == now_time, "temperature"].iloc[0])
 current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[0])
 
-# 3) Future time for prediction display (+2/+3 hours from now_time)
-future_time = now_time + timedelta(hours=int(horizon))
+# ---- DEBUG (very important now) ----
+with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
+    st.write("now_clock_baku:", now_clock_baku)
+    st.write("now_time picked:", now_time)
+    st.write("future_time:", future_time)
+    st.write("current_radiation:", current_radiation)
+    st.write("future_radiation:", future_radiation)
+    st.write("pred_kw BEFORE gating:", pred_kw)
 
-# 4) Physical gating should use radiation at FUTURE time (because you predict future PV)
-future_rad = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
-if len(future_rad) > 0 and float(future_rad.iloc[0]) < 5:
+# Physical gating should use future radiation (since you predict +2/+3h)
+if future_radiation is not None and future_radiation < 5:
     pred_kw = 0.0
 else:
     pred_kw = max(0.0, pred_kw)
+
 
 #------------------------------------------------------
 
@@ -285,9 +307,6 @@ else:
 st.caption(f"Məkan: {city}  •  Proqnoz üfüqü: +{horizon} saat  •  Yüklənən model: {MODEL_PATH}")
 
 col1, col2, col3, col4 = st.columns(4)
-# col1.metric("İndiki radiasiya", f"{current_radiation} W/m²")
-# col2.metric("İndiki temperatur", f"{df_raw['temperature'].iloc[-1]:.1f} °C")
-# col3.metric("İndiki buludluluq", f"{df_raw['cloudcover'].iloc[-1]:.0f} %")
 
 col1.metric("İndiki radiasiya", f"{current_radiation:.0f} W/m²")
 col2.metric("İndiki temperatur", f"{current_temp:.1f} °C")
