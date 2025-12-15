@@ -251,6 +251,13 @@ else:
 now_time = df_feat["time"].iloc[-1]
 future_time = now_time + timedelta(hours=int(horizon))
 
+future_rad = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
+if len(future_rad) > 0 and future_rad.iloc[0] < 5:
+    pred_kw = 0.0
+else:
+    pred_kw = max(0.0, pred_kw)
+
+
 # ==============================
 # TOP METRICS
 # ==============================
