@@ -189,31 +189,31 @@ def fetch_recent_hours(lat: float, lon: float, hours: int = 320) -> pd.DataFrame
     return df
 
 
-def predict_pv_kw(model, device, df_feat: pd.DataFrame, df_scaled: pd.DataFrame, now_time: pd.Timestamp) -> float:
-    # align to now_time using df_feat time (same indices as df_scaled after scaling)
+def predict_pv_kw(model, device, df_feat, df_scaled, now_time):
     idx = df_feat.index[df_feat["time"] <= now_time]
     if len(idx) == 0:
-        return 0.0
+        return 0.0, 0.0, 0.0
 
     end = idx[-1]
     start = end - (SEQ_LEN - 1)
     if start < 0:
-        return 0.0
+        return 0.0, 0.0, 0.0
 
-    # IMPORTANT: model must take SCALED features
     x = df_scaled.loc[start:end, FEATURES].values
     x = torch.tensor(x, dtype=torch.float32, device=device).unsqueeze(0)
 
     with torch.no_grad():
-        delta = float(model(x).item())
+        out = float(model(x).item())
 
-    # last known PV (proxy) should come from original (unscaled) df_feat
     last_pv = float(df_feat.loc[end, "pv_power_kw"])
 
-    # if your model is delta/residual:
-    yhat = last_pv + delta
+    # We'll test 3 interpretations
+    pred_abs = out                 # model predicts absolute PV
+    pred_delta = last_pv + out     # model predicts delta/residual
+    pred_scaled_like = (out + 1)/2 * p_rated  # cheap rescale probe (only for diagnosis)
 
-    return float(yhat)
+    return pred_abs, pred_delta, pred_scaled_like
+
 
 
 
@@ -254,11 +254,11 @@ now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
 
 df_feat = add_features(df_raw, p_rated)
 df_scaled = std_scale(df_feat, mean, scale)
-pred_kw = predict_pv_kw(model, device, df_feat, df_scaled, now_time)
+# pred_kw = predict_pv_kw(model, device, df_feat, df_scaled, now_time)
+
+pred_abs, pred_delta, pred_probe = predict_pv_kw(model, device, df_feat, df_scaled, now_time)
 
 pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
-
-
 
 
 # ==============================
@@ -286,11 +286,14 @@ current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[
 # pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 # ---- DEBUG (very important now) ----
-with st.expander("🛠 Debug (prediction internals)", expanded=False):
+with st.expander("🧪 Prediction diagnostics", expanded=True):
     end_idx = df_feat.index[df_feat["time"] <= now_time][-1]
     st.write("aligned_time:", df_feat.loc[end_idx, "time"])
     st.write("last_pv_proxy:", float(df_feat.loc[end_idx, "pv_power_kw"]))
-    # delta only if you store it; easiest is to temporarily recompute inside function or return it too
+    st.write("model_out (raw):", pred_abs)
+    st.write("pred_if_abs:", pred_abs)
+    st.write("pred_if_delta:", pred_delta)
+    st.write("pred_probe_rescaled:", pred_probe)
 
 
 # Physical gating should use future radiation (since you predict +2/+3h)
