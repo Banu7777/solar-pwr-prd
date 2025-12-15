@@ -258,6 +258,7 @@ df_scaled = std_scale(df_feat, mean, scale)
 
 pred_abs, pred_delta, pred_probe = predict_pv_kw(model, device, df_feat, df_scaled, now_time)
 
+pred_kw = 0
 pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 
