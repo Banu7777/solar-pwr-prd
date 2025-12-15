@@ -220,6 +220,9 @@ except FileNotFoundError as e:
 
 try:
     df_raw = fetch_recent_hours(lat, lon, hours=320)
+    st.write("DEBUG tail:", df_raw.tail(10))
+    st.write("Radiation min/max:", df_raw["shortwave_radiation"].min(), df_raw["shortwave_radiation"].max())
+
 except Exception as e:
     st.error(f"Open‑Meteo məlumatını çəkmək alınmadı: {e}")
     st.stop()
