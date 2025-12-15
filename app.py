@@ -256,10 +256,11 @@ df_feat = add_features(df_raw, p_rated)
 df_scaled = std_scale(df_feat, mean, scale)
 # pred_kw = predict_pv_kw(model, device, df_feat, df_scaled, now_time)
 
+# --- compute prediction as DELTA model ---
 pred_abs, pred_delta, pred_probe = predict_pv_kw(model, device, df_feat, df_scaled, now_time)
+pred_kw = float(pred_delta)   # <-- ONLY THIS is your prediction
 
-pred_kw = 0
-pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
+# pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 
 # ==============================
@@ -278,30 +279,32 @@ future_time = now_time + timedelta(hours=int(horizon))
 # Radiation now / future
 current_radiation = float(df_raw.loc[df_raw["time"] == now_time, "shortwave_radiation"].iloc[0])
 
-future_rad_series = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
-future_radiation = float(future_rad_series.iloc[0]) if len(future_rad_series) > 0 else None
+future_radiation = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
 
 current_temp = float(df_raw.loc[df_raw["time"] == now_time, "temperature"].iloc[0])
 current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[0])
 
-# pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
+#---------------------------------
+future_rad = df_raw.loc[df_raw["time"] == future_time, "shortwave_radiation"]
+
+if len(future_rad) > 0 and float(future_rad.iloc[0]) < 5:
+    pred_kw = 0.0
+
+# Clamp to physical limits
+pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
+
+#---------------------------------
 
 # ---- DEBUG (very important now) ----
 with st.expander("🧪 Prediction diagnostics", expanded=True):
-    end_idx = df_feat.index[df_feat["time"] <= now_time][-1]
-    st.write("aligned_time:", df_feat.loc[end_idx, "time"])
-    st.write("last_pv_proxy:", float(df_feat.loc[end_idx, "pv_power_kw"]))
-    st.write("model_out (raw):", pred_abs)
-    st.write("pred_if_abs:", pred_abs)
-    st.write("pred_if_delta:", pred_delta)
-    st.write("pred_probe_rescaled:", pred_probe)
-
-
-# Physical gating should use future radiation (since you predict +2/+3h)
-if future_radiation is not None and future_radiation < 5:
-    pred_kw = 0.0
-else:
-    pred_kw = max(0.0, pred_kw)
+        end_idx = df_feat.index[df_feat["time"] <= now_time][-1]
+        st.write("CITY:", city)
+        st.write("aligned_time:", df_feat.loc[end_idx, "time"])
+        st.write("RAD(aligned):", float(df_feat.loc[end_idx, "shortwave_radiation"]))
+        st.write("PV_proxy(aligned):", float(df_feat.loc[end_idx, "pv_power_kw"]))
+        st.write("pred_delta(before gate):", float(pred_delta))
+        st.write("future_rad:", float(future_rad.iloc[0]) if len(future_rad) else None)
+        st.write("FINAL pred_kw:", pred_kw)
 
 
 #------------------------------------------------------
