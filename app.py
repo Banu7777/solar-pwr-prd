@@ -267,10 +267,10 @@ current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[
 # pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 # ---- DEBUG (very important now) ----
-with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
-    st.write("last_pv:", df_feat["pv_power_kw"].iloc[-1])
-    st.write("delta:", delta)
-    st.write("final pred:", yhat)
+# with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
+#     st.write("last_pv:", df_feat["pv_power_kw"].iloc[-1])
+#     st.write("delta:", delta)
+#     st.write("final pred:", yhat)
 
 
 
