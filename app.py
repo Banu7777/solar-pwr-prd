@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import timedelta
-
+from zoneinfo import ZoneInfo
 from model import NHiTS
 
 # ==============================
@@ -255,7 +255,7 @@ pred_kw = predict_pv_kw(model, device, df_feat, now_time)
 pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 
-from zoneinfo import ZoneInfo
+
 
 # ==============================
 # TIME (Baku) + DEBUG + PHYSICAL GATING (FIX)
