@@ -188,19 +188,27 @@ def fetch_recent_hours(lat: float, lon: float, hours: int = 320) -> pd.DataFrame
         df = df.iloc[-hours:].reset_index(drop=True)
     return df
 
-def predict_pv_kw(model, device, df_feat: pd.DataFrame) -> float:
-    x = df_feat[FEATURES].values[-SEQ_LEN:]
+def predict_pv_kw(model, device, df_feat: pd.DataFrame, now_time: pd.Timestamp) -> float:
+    # df_feat içindən now_time-a qədər olan hissənin son indeksini tap
+    idx = df_feat.index[df_feat["time"] <= now_time]
+    if len(idx) == 0:
+        return 0.0  # hələ feature-lər formalaşmayıb
+
+    end = idx[-1]
+
+    # SEQ_LEN qədər geriyə get (yetmirsə 0 qaytar)
+    start = end - (SEQ_LEN - 1)
+    if start < 0:
+        return 0.0
+
+    x = df_feat.loc[start:end, FEATURES].values
     x = torch.tensor(x, dtype=torch.float32, device=device).unsqueeze(0)
 
     with torch.no_grad():
-        delta = model(x).item()   # <-- model change / residual verir
+        delta = model(x).item()
 
-    # LAST KNOWN PV (proxy)
-    last_pv = float(df_feat["pv_power_kw"].iloc[-1])
-
-    # FINAL prediction = last value + delta
-    yhat = last_pv + delta
-
+    last_pv = float(df_feat.loc[end, "pv_power_kw"])
+    yhat = last_pv + float(delta)
     return float(yhat)
 
 
@@ -235,7 +243,7 @@ except Exception as e:
 
 df_feat = add_features(df_raw, p_rated)
 df_scaled = std_scale(df_feat, mean, scale)
-pred_kw = predict_pv_kw(model, device, df_feat)
+pred_kw = predict_pv_kw(model, device, df_feat, now_time)
 
 pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
@@ -267,10 +275,15 @@ current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[
 # pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 # ---- DEBUG (very important now) ----
-# with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
-#     st.write("last_pv:", df_feat["pv_power_kw"].iloc[-1])
-#     st.write("delta:", delta)
-#     st.write("final pred:", yhat)
+with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
+    end_idx = df_feat.index[df_feat["time"] <= now_time][-1]
+    current_pv_proxy = float(df_feat.loc[end_idx, "pv_power_kw"])
+    st.write("DEBUG current_pv_proxy:", current_pv_proxy)
+    st.write("df_raw last time:", df_raw["time"].iloc[-1])
+    st.write("df_feat last time:", df_feat["time"].iloc[-1])
+    st.write("now_time:", now_time)
+
+
 
 
 
