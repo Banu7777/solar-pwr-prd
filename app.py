@@ -249,7 +249,12 @@ except Exception as e:
 #-----------------------
 now_clock_baku = pd.Timestamp.now(tz=ZoneInfo("Asia/Baku")).tz_localize(None).floor("H")
 # Choose now_time as latest available hour <= Baku clock
-now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+
+# now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+
+# demo meqsedile gunorta vaxtina sabitleyirik 
+now_time = df_raw.loc[df_raw["time"].dt.hour == 12, "time"].iloc[-1]
+
 #-----------------------
 
 df_feat = add_features(df_raw, p_rated)
@@ -271,7 +276,11 @@ pred_kw = float(pred_delta)   # <-- ONLY THIS is your prediction
 now_clock_baku = pd.Timestamp.now(tz=ZoneInfo("Asia/Baku")).tz_localize(None).floor("H")
 
 # Choose now_time as latest available hour <= Baku clock
-now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+# now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+
+# DEMO üçün – həmişə gündüz saatını seç
+now_time = df_raw.loc[df_raw["time"].dt.hour == 12, "time"].iloc[-1]
+
 
 # Future time
 future_time = now_time + timedelta(hours=int(horizon))
