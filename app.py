@@ -43,7 +43,7 @@ FEATURES = [
     "G_lag1", "G_lag3", "G_lag6", "G_lag12", "G_lag24",
     "pv_lag1", "pv_lag3", "pv_lag6", "pv_lag12", "pv_lag24",
     "pv_roll6_mean", "pv_roll12_mean", "pv_roll24_mean",
-    "pv_roll6_std", "pv_roll12_std", "pv_roll24_std",
+    "pv_roll6_std", "pv_roll12_std", "pv_roll24_std"
 ]
 
 AZ_CITIES = {
@@ -286,7 +286,7 @@ future_radiation = float(future_rad_series.iloc[0]) if len(future_rad_series) > 
 current_temp = float(df_raw.loc[df_raw["time"] == now_time, "temperature"].iloc[0])
 current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[0])
 
-pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
+# pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 # ---- DEBUG (very important now) ----
 with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
