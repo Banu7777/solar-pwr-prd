@@ -188,6 +188,7 @@ def fetch_recent_hours(lat: float, lon: float, hours: int = 320) -> pd.DataFrame
         df = df.iloc[-hours:].reset_index(drop=True)
     return df
 
+
 def predict_pv_kw(model, device, df_feat: pd.DataFrame, now_time: pd.Timestamp) -> float:
     # df_feat içindən now_time-a qədər olan hissənin son indeksini tap
     idx = df_feat.index[df_feat["time"] <= now_time]
@@ -240,6 +241,12 @@ try:
 except Exception as e:
     st.error(f"Open‑Meteo məlumatını çəkmək alınmadı: {e}")
     st.stop()
+
+#-----------------------
+now_clock_baku = pd.Timestamp.now(tz=ZoneInfo("Asia/Baku")).tz_localize(None).floor("H")
+# Choose now_time as latest available hour <= Baku clock
+now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+#-----------------------
 
 df_feat = add_features(df_raw, p_rated)
 df_scaled = std_scale(df_feat, mean, scale)
