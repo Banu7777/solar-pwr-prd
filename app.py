@@ -250,10 +250,11 @@ except Exception as e:
 now_clock_baku = pd.Timestamp.now(tz=ZoneInfo("Asia/Baku")).tz_localize(None).floor("H")
 # Choose now_time as latest available hour <= Baku clock
 
-# now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+# umumi yoxlama ucun
+now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
 
 # demo meqsedile gunorta vaxtina sabitleyirik 
-now_time = df_raw.loc[df_raw["time"].dt.hour == 12, "time"].iloc[-1]
+# now_time = df_raw.loc[df_raw["time"].dt.hour == 12, "time"].iloc[-1]
 
 #-----------------------
 
@@ -276,10 +277,10 @@ pred_kw = float(pred_delta)   # <-- ONLY THIS is your prediction
 now_clock_baku = pd.Timestamp.now(tz=ZoneInfo("Asia/Baku")).tz_localize(None).floor("H")
 
 # Choose now_time as latest available hour <= Baku clock
-# now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
+now_time = df_raw.loc[df_raw["time"] <= now_clock_baku, "time"].iloc[-1]
 
 # DEMO üçün – həmişə gündüz saatını seç
-now_time = df_raw.loc[df_raw["time"].dt.hour == 12, "time"].iloc[-1]
+# now_time = df_raw.loc[df_raw["time"].dt.hour == 12, "time"].iloc[-1]
 
 
 # Future time
@@ -305,15 +306,15 @@ pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 #---------------------------------
 
 # ---- DEBUG (very important now) ----
-with st.expander("🧪 Prediction diagnostics", expanded=True):
-        end_idx = df_feat.index[df_feat["time"] <= now_time][-1]
-        st.write("CITY:", city)
-        st.write("aligned_time:", df_feat.loc[end_idx, "time"])
-        st.write("RAD(aligned):", float(df_feat.loc[end_idx, "shortwave_radiation"]))
-        st.write("PV_proxy(aligned):", float(df_feat.loc[end_idx, "pv_power_kw"]))
-        st.write("pred_delta(before gate):", float(pred_delta))
-        st.write("future_rad:", float(future_rad.iloc[0]) if len(future_rad) else None)
-        st.write("FINAL pred_kw:", pred_kw)
+# with st.expander("🧪 Prediction diagnostics", expanded=True):
+#         end_idx = df_feat.index[df_feat["time"] <= now_time][-1]
+#         st.write("CITY:", city)
+#         st.write("aligned_time:", df_feat.loc[end_idx, "time"])
+#         st.write("RAD(aligned):", float(df_feat.loc[end_idx, "shortwave_radiation"]))
+#         st.write("PV_proxy(aligned):", float(df_feat.loc[end_idx, "pv_power_kw"]))
+#         st.write("pred_delta(before gate):", float(pred_delta))
+#         st.write("future_rad:", float(future_rad.iloc[0]) if len(future_rad) else None)
+#         st.write("FINAL pred_kw:", pred_kw)
 
 
 #------------------------------------------------------
