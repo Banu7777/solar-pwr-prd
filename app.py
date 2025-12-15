@@ -220,8 +220,6 @@ except FileNotFoundError as e:
 
 try:
     df_raw = fetch_recent_hours(lat, lon, hours=320)
-
-
 except Exception as e:
     st.error(f"Open‑Meteo məlumatını çəkmək alınmadı: {e}")
     st.stop()
@@ -233,8 +231,14 @@ pred_kw = predict_pv_kw(model, device, df_scaled)
 # ==============================
 # PHYSICAL GATING (PV cannot be negative, night-time handling)
 # ==============================
-now_time = df_feat["time"].iloc[-1]   
-current_radiation = df_raw.loc[df_raw["time"] <= now_time, "shortwave_radiation"].iloc[-1]
+# now_time = df_feat["time"].iloc[-1]   
+# current_radiation = df_raw.loc[df_raw["time"] <= now_time, "shortwave_radiation"].iloc[-1]
+# now_time = df_raw["time"].max() - timedelta(hours=0)  # ən son saat
+# # və ya daha məntiqli:
+
+now_time = pd.Timestamp.now(tz=df_raw["time"].dt.tz).floor("H") if df_raw["time"].dt.tz is not None else pd.Timestamp.now().floor("H")
+now_time = df_raw.loc[df_raw["time"] <= now_time, "time"].iloc[-1]
+current_radiation = df_raw.loc[df_raw["time"] == now_time, "shortwave_radiation"].iloc[0]
 
 # If it is night or very low radiation, PV power must be zero
 if current_radiation < 5:   # W/m² threshold
