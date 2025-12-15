@@ -188,11 +188,19 @@ def fetch_recent_hours(lat: float, lon: float, hours: int = 320) -> pd.DataFrame
         df = df.iloc[-hours:].reset_index(drop=True)
     return df
 
-def predict_pv_kw(model, device, df_scaled: pd.DataFrame) -> float:
+def predict_pv_kw(model, device, df_scaled: pd.DataFrame, mean: np.ndarray, scale: np.ndarray) -> float:
     x = df_scaled[FEATURES].values[-SEQ_LEN:]
     x = torch.tensor(x, dtype=torch.float32, device=device).unsqueeze(0)
     with torch.no_grad():
-        yhat = model(x).item()
+        yhat_scaled = model(x).item()
+
+    # ---- inverse transform for target if scaler includes it ----
+    if len(mean) == len(FEATURES) + 1:
+        yhat = yhat_scaled * float(scale[-1]) + float(mean[-1])
+    else:
+        # If target scale is not available, return raw (we'll clamp later)
+        yhat = yhat_scaled
+
     return float(yhat)
 
 # ==============================
@@ -226,12 +234,7 @@ except Exception as e:
 
 df_feat = add_features(df_raw, p_rated)
 df_scaled = std_scale(df_feat, mean, scale)
-pred_kw = predict_pv_kw(model, device, df_scaled)
-
-# ==============================
-# PHYSICAL GATING (PV cannot be negative, night-time handling)
-# ==============================
-
+pred_kw = predict_pv_kw(model, device, df_scaled, mean, scale)
 
 #------------------------------------------------------
 # ==============================
@@ -282,6 +285,8 @@ future_radiation = float(future_rad_series.iloc[0]) if len(future_rad_series) > 
 
 current_temp = float(df_raw.loc[df_raw["time"] == now_time, "temperature"].iloc[0])
 current_cloud = float(df_raw.loc[df_raw["time"] == now_time, "cloudcover"].iloc[0])
+
+pred_kw = float(np.clip(pred_kw, 0.0, p_rated))
 
 # ---- DEBUG (very important now) ----
 with st.expander("🛠 Debug (time + radiation + raw prediction)", expanded=False):
